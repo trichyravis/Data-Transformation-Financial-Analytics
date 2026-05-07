@@ -1,3 +1,4 @@
+
 """
 THE MOUNTAIN PATH - World of Finance
 Data Transformation for Data Analysis - Interactive Learning App
@@ -58,8 +59,28 @@ st.markdown(f"""
         font-family: 'Source Sans 3', sans-serif;
     }}
     section[data-testid="stSidebar"] .stRadio label span {{
-        color: {LIGHT_BLUE} !important;
-        font-size: 1.02rem;
+        color: {WHITE} !important;
+        font-size: 1.05rem;
+        font-weight: 500;
+    }}
+    section[data-testid="stSidebar"] .stRadio label {{
+        color: {WHITE} !important;
+    }}
+    section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {{
+        color: {WHITE} !important;
+    }}
+    section[data-testid="stSidebar"] .stRadio div[role="radiogroup"] label p {{
+        color: {WHITE} !important;
+        font-size: 1.05rem;
+        font-weight: 500;
+    }}
+    section[data-testid="stSidebar"] .stRadio > label > div[data-testid="stMarkdownContainer"] > p {{
+        color: {GOLD} !important;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }}
+    section[data-testid="stSidebar"] * {{
+        color: {WHITE} !important;
     }}
     section[data-testid="stSidebar"] hr {{
         border-color: rgba(173,216,230,0.3);
