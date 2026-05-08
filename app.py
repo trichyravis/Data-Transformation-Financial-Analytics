@@ -186,6 +186,42 @@ st.markdown(f"""
         display: inline-flex; align-items: center; justify-content: center;
         font-weight: 900; font-size: 0.9rem; flex-shrink: 0;
     }}
+
+    /* Q&A Educational Tab */
+    .qa-card {{
+        background: white; border-radius: 10px; padding: 1.2rem 1.4rem; margin: 0.8rem 0;
+        box-shadow: 0 2px 10px rgba(0,51,102,0.07); border-left: 4px solid {DARK_BLUE};
+    }}
+    .qa-card .qa-q {{
+        color: {DARK_BLUE}; font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem;
+        font-family: 'Source Sans 3', sans-serif;
+    }}
+    .qa-card .qa-a {{
+        color: #333; font-size: 0.93rem; line-height: 1.6;
+        font-family: 'Source Sans 3', sans-serif;
+    }}
+    .adv-lim-container {{
+        display: flex; gap: 1rem; margin: 1rem 0;
+    }}
+    .adv-box, .lim-box {{
+        flex: 1; border-radius: 10px; padding: 1.2rem; min-height: 120px;
+    }}
+    .adv-box {{
+        background: linear-gradient(135deg, rgba(46,139,87,0.08), rgba(46,139,87,0.03));
+        border: 1px solid rgba(46,139,87,0.3);
+    }}
+    .adv-box .al-title {{ color: {ACCENT_GREEN}; font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; }}
+    .lim-box {{
+        background: linear-gradient(135deg, rgba(231,76,60,0.08), rgba(231,76,60,0.03));
+        border: 1px solid rgba(231,76,60,0.3);
+    }}
+    .lim-box .al-title {{ color: #E74C3C; font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; }}
+    .al-item {{ font-size: 0.9rem; line-height: 1.7; color: #333; }}
+    .approach-box {{
+        background: linear-gradient(135deg, rgba(0,51,102,0.06), rgba(0,51,102,0.02));
+        border: 1px solid rgba(0,51,102,0.2); border-radius: 10px; padding: 1.2rem; margin: 0.8rem 0;
+    }}
+    .approach-box .al-title {{ color: {DARK_BLUE}; font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -230,6 +266,35 @@ def colored_pipeline(steps_colors):
             html += '<div class="pipeline-arrow">&#10148;</div>'
     html += '</div>'
     st.markdown(html, unsafe_allow_html=True)
+
+def render_qa_tab(qas, formulas, approach, advantages, limitations):
+    """Render a complete Q&A / Learn tab.
+    qas: list of (question, answer) tuples
+    formulas: list of formula strings
+    approach: string (when/how to use)
+    advantages: list of strings
+    limitations: list of strings
+    """
+    st.markdown("### Conceptual Q&A")
+    for i, (q, a) in enumerate(qas):
+        st.markdown(f'<div class="qa-card"><div class="qa-q">Q{i+1}. {q}</div><div class="qa-a">{a}</div></div>', unsafe_allow_html=True)
+
+    if formulas:
+        st.markdown("### Formula Reference")
+        for f in formulas:
+            formula_block(f)
+
+    st.markdown("### When & How to Use")
+    st.markdown(f'<div class="approach-box"><div class="al-title">Approach & Application</div><div class="al-item">{approach}</div></div>', unsafe_allow_html=True)
+
+    st.markdown("### Advantages & Limitations")
+    adv_html = "".join(f"<div class='al-item'>&#10004; {a}</div>" for a in advantages)
+    lim_html = "".join(f"<div class='al-item'>&#10060; {l}</div>" for l in limitations)
+    st.markdown(f"""<div class="adv-lim-container">
+        <div class="adv-box"><div class="al-title">Advantages</div>{adv_html}</div>
+        <div class="lim-box"><div class="al-title">Limitations</div>{lim_html}</div>
+    </div>""", unsafe_allow_html=True)
+
 
 # =============================================================================
 # SIDEBAR
@@ -389,7 +454,7 @@ elif page == "1. Cleaning":
     raw = pd.DataFrame({"Raw Name": ["  apple ", "APPLE", "Apple", " banana", "BANANA ", "(blank)", "cherry"], "Sales": [10, 15, 8, 7, 12, 5, 9]})
     cleaned = pd.DataFrame({"Cleaned Name": ["Apple","Apple","Apple","Banana","Banana","(missing)","Cherry"], "Sales": [10, 15, 8, 7, 12, 5, 9]})
 
-    tab1, tab2, tab3 = st.tabs(["Before & After", "Interactive Chart", "Excel Formulas"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Before & After", "Interactive Chart", "Excel Formulas", "Q&A / Learn"])
     with tab1:
         c1, c2 = st.columns(2)
         with c1:
@@ -411,6 +476,23 @@ elif page == "1. Cleaning":
         formula_block('=IF(A2="", "(missing)", PROPER(TRIM(A2))) &mdash; also flags blank cells')
         formula_block("=SUMIF(D:D, A13, E:E) &mdash; sum sales for each cleaned product")
         formula_block("=CLEAN(A2) &mdash; removes non-printable characters")
+    with tab4:
+        render_qa_tab(
+            qas=[
+                ("What is data cleaning?", "Data cleaning (or data cleansing) is the process of identifying and correcting errors, inconsistencies, and missing values in a dataset. It ensures data is accurate, consistent, and usable for analysis."),
+                ("Why does '  apple ' and 'APPLE' cause problems?", "Excel and Python treat these as <strong>different values</strong> because of leading/trailing spaces and case differences. SUMIF, VLOOKUP, and groupby operations will fail to match them, resulting in fragmented counts and incorrect totals."),
+                ("What does TRIM do vs CLEAN?", "<strong>TRIM</strong> removes leading/trailing spaces and collapses multiple internal spaces to one. <strong>CLEAN</strong> removes non-printable characters (ASCII 0-31) like line breaks, tabs, and control characters that are invisible but break matching."),
+                ("How should missing values be handled?", "Options include: (1) Flag as '(missing)' or 'Unknown' for transparency, (2) Delete rows if few, (3) Impute with mean/median/mode, (4) Use forward/backward fill for time series. The best choice depends on the analysis goal and how much data is missing."),
+                ("What is the difference between PROPER, UPPER, and LOWER?", "<strong>PROPER</strong> capitalizes the first letter of each word (apple &rarr; Apple). <strong>UPPER</strong> converts everything to uppercase. <strong>LOWER</strong> converts everything to lowercase. PROPER is best for names; UPPER/LOWER for case-insensitive matching."),
+            ],
+            formulas=["=TRIM(A2) &mdash; remove extra spaces", "=PROPER(A2) &mdash; capitalize first letter of each word",
+                       "=CLEAN(A2) &mdash; remove non-printable characters", "=SUBSTITUTE(A2, CHAR(160), \" \") &mdash; remove non-breaking spaces"],
+            approach="Apply cleaning as the <strong>first step</strong> in any data pipeline. Start with TRIM + PROPER/UPPER for text standardization, then handle blanks with IF, and finally verify with COUNTIF that duplicate variants have merged. In Python, use <code>str.strip()</code>, <code>str.title()</code>, and <code>fillna()</code>.",
+            advantages=["Eliminates duplicate categories caused by inconsistent entry", "Enables accurate SUMIF, VLOOKUP, and groupby operations",
+                        "Reduces noise and improves data quality for downstream analysis", "Simple to implement with built-in Excel/Python functions"],
+            limitations=["Cannot fix semantic errors (e.g., 'Aple' typo for 'Apple')", "PROPER may not handle special names correctly (e.g., 'McDonald' becomes 'Mcdonald')",
+                         "Blank handling strategy depends on context and may introduce bias", "Large datasets may need fuzzy matching (Levenshtein distance) beyond simple TRIM/PROPER"],
+        )
 
 
 # =============================================================================
@@ -422,7 +504,7 @@ elif page == "2. Standardize":
     defn_box("The Problem", "Weights are mixed (lbs vs kg) and dates are stored as text. You cannot SUM or SORT until every value is on the same scale.")
     raw_std = pd.DataFrame({"Item": [f"Item {c}" for c in "ABCDE"], "Weight": [10,5,22,3,50], "Unit": ["lb","kg","lb","kg","lb"], "Date (text)": ["20240115","20240203","20240220","20240301","20240318"]})
     std = pd.DataFrame({"Item": [f"Item {c}" for c in "ABCDE"], "Weight (kg)": [4.536,5.000,9.979,3.000,22.680], "Real Date": ["2024-01-15","2024-02-03","2024-02-20","2024-03-01","2024-03-18"]})
-    tab1, tab2, tab3 = st.tabs(["Data View", "Interactive Chart", "Excel Formulas"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Data View", "Interactive Chart", "Excel Formulas", "Q&A / Learn"])
     with tab1:
         c1, c2 = st.columns(2)
         with c1: st.markdown("#### Raw Data"); st.dataframe(raw_std, use_container_width=True, hide_index=True)
@@ -437,6 +519,24 @@ elif page == "2. Standardize":
         formula_block('=IF(C2="lb", B2*0.4536, B2) &mdash; converts lbs to kg')
         formula_block('=DATE(LEFT(D2,4), MID(D2,5,2), RIGHT(D2,2)) &mdash; parses text date')
         insight_box("Once standardized, you can SUM weights and SORT by date. Without it, neither works.")
+    with tab4:
+        render_qa_tab(
+            qas=[
+                ("Why is standardizing units essential before analysis?", "If weights are in mixed units (lbs and kg), SUM, AVERAGE, and comparisons produce meaningless results. Converting everything to a single unit ensures mathematical operations are valid."),
+                ("How do you convert pounds to kilograms?", "Multiply by 0.4536. In Excel: =IF(C2=\"lb\", B2*0.4536, B2). This conditionally converts only the rows that are in pounds."),
+                ("Why do text dates need conversion?", "Text dates like '20240115' cannot be sorted chronologically or used in date arithmetic (e.g., calculating days between orders). Parsing them to real dates enables SORT, DATEDIF, and timeline charts."),
+                ("What is the difference between standardization and normalization?", "Standardization typically refers to making units consistent (same scale/unit). Normalization (like min-max) rescales values to a fixed range. Both prepare data for analysis but serve different purposes."),
+                ("Can standardization introduce errors?", "Yes — using wrong conversion factors, truncating decimal places, or applying conversions to already-converted values can introduce systematic errors. Always validate with known reference values."),
+            ],
+            formulas=[
+                '=IF(C2="lb", B2*0.4536, B2) — conditional unit conversion',
+                "=DATE(LEFT(D2,4), MID(D2,5,2), RIGHT(D2,2)) — text to date parsing",
+                "=CONVERT(B2, \"lbm\", \"kg\") — Excel's built-in CONVERT function",
+            ],
+            approach="Use standardization whenever your dataset mixes units (currencies, weights, distances, temperatures) or formats (date strings, number-as-text). Apply conversion factors first, then validate totals against known benchmarks before proceeding with analysis.",
+            advantages=["Enables valid mathematical operations (SUM, AVERAGE, comparisons)", "Makes data sortable and filterable on a consistent basis", "Prevents misleading charts where mixed units distort visual comparisons", "Prerequisite for downstream transformations like scaling and aggregation"],
+            limitations=["Conversion factors must be accurate and up to date (e.g., exchange rates change daily)", "Rounding during conversion can introduce small cumulative errors", "Original units are lost unless preserved in a separate column", "Some conversions are context-dependent (e.g., fiscal year vs calendar year)"],
+        )
 
 
 # =============================================================================
@@ -448,7 +548,7 @@ elif page == "3. Aggregate":
     defn_box("The Problem", "10 individual sales rows tell us little. Aggregate into per-group summaries to see which region leads.")
     raw_agg = pd.DataFrame({"Order": [f"Order {i}" for i in range(1,11)], "Region": ["North","South","North","East","South","West","North","East","West","South"], "Sales": [120,90,75,200,60,150,95,110,80,130]})
     agg = pd.DataFrame({"Region": ["North","South","East","West"], "Total Sales": [290,280,310,230], "Order Count": [3,3,2,2], "Avg Order": [96.67,93.33,155.00,115.00]})
-    tab1, tab2, tab3 = st.tabs(["Data View", "Interactive Charts", "Excel Formulas"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Data View", "Interactive Charts", "Excel Formulas", "Q&A / Learn"])
     with tab1:
         c1, c2 = st.columns(2)
         with c1: st.markdown("#### Raw (10 orders)"); st.dataframe(raw_agg, use_container_width=True, hide_index=True)
@@ -475,6 +575,25 @@ elif page == "3. Aggregate":
         formula_block("=COUNTIF(B:B, E3) &mdash; order count")
         formula_block("=AVERAGEIF(B:B, E3, C:C) &mdash; average order value")
         insight_box("<strong>Grand Total check:</strong> 290+280+310+230 = <strong>1,110</strong>, matching sum of all 10 orders.")
+    with tab4:
+        render_qa_tab(
+            qas=[
+                ("What is aggregation and why is it needed?", "Aggregation collapses many rows into summary rows using functions like SUM, COUNT, and AVERAGE. Raw transactional data (one row per order) is too granular for decision-making — managers need totals by region, product, or time period."),
+                ("What is the difference between SUMIF and SUMIFS?", "SUMIF applies a single condition (e.g., sum sales where Region='North'). SUMIFS supports multiple conditions (e.g., sum sales where Region='North' AND Product='Apples'). SUMIFS is more versatile."),
+                ("How does GROUP BY work in Python vs Excel?", "In Python: df.groupby('Region')['Sales'].sum(). In Excel: SUMIF/COUNTIF or Pivot Tables. Both produce the same result — collapsing rows by a grouping key and applying an aggregate function."),
+                ("When should you use AVERAGEIF instead of a simple AVERAGE?", "Use AVERAGEIF when you need the average for a specific subset (e.g., average order value for the North region only). A simple AVERAGE would include all regions indiscriminately."),
+                ("How do you verify aggregation results?", "Cross-check the grand total: sum of all aggregated group totals should equal the sum of all original rows. If they don't match, a row was missed or double-counted."),
+            ],
+            formulas=[
+                "=SUMIF(range, criteria, sum_range) — sum values matching one condition",
+                "=COUNTIF(range, criteria) — count rows matching a condition",
+                "=AVERAGEIF(range, criteria, avg_range) — average values matching one condition",
+                "Python: df.groupby('col').agg(Total=('Sales','sum'), Count=('Sales','count'))",
+            ],
+            approach="Use aggregation when raw data has too many rows for meaningful comparison. Group by the dimension of interest (region, product, time period), apply the appropriate aggregate function, and always validate with a grand-total cross-check.",
+            advantages=["Reduces data volume from thousands of rows to manageable summaries", "Reveals patterns invisible in row-level data (which region leads?)", "Enables KPI calculation (average order value, conversion rate)", "Foundation for dashboards, reports, and executive summaries"],
+            limitations=["Loses individual record detail (can't see which specific order was largest)", "Choice of grouping key affects the story (monthly vs quarterly gives different insights)", "Outliers get hidden inside averages — consider using median alongside mean", "Multi-level aggregation can be complex (region > product > month)"],
+        )
 
 
 # =============================================================================
@@ -487,7 +606,7 @@ elif page == "4. Pivot":
     long_data = pd.DataFrame({"Region": ["North"]*4+["South"]*4+["East"]*4, "Quarter": ["Q1","Q2","Q3","Q4"]*3, "Sales": [100,120,130,150,80,95,110,125,60,70,90,105]})
     wide_data = pd.DataFrame({"Region": ["North","South","East"], "Q1": [100,80,60], "Q2": [120,95,70], "Q3": [130,110,90], "Q4": [150,125,105]})
     wide_data["Total"] = wide_data[["Q1","Q2","Q3","Q4"]].sum(axis=1)
-    tab1, tab2, tab3 = st.tabs(["Data View", "Interactive Heatmap", "Excel Formulas"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Data View", "Interactive Heatmap", "Excel Formulas", "Q&A / Learn"])
     with tab1:
         c1, c2 = st.columns(2)
         with c1: st.markdown("#### Long (12 rows)"); st.dataframe(long_data, use_container_width=True, hide_index=True)
@@ -513,6 +632,24 @@ elif page == "4. Pivot":
     with tab3:
         formula_block('=SUMIFS(C:C, A:A, E4, B:B, F3) &mdash; Region=row AND Quarter=column')
         example_box("How SUMIFS Pivots", "<code>=SUMIFS($C$4:$C$15, $A$4:$A$15, $E4, $B$4:$B$15, F$3)</code><br>Mixed references let you copy across the grid.")
+    with tab4:
+        render_qa_tab(
+            qas=[
+                ("What is pivoting and how does it differ from aggregation?", "Pivoting reshapes data from long format (one row per observation) to wide format (categories become columns). It combines aggregation with restructuring — not just summarizing, but reorganizing the layout for easier comparison."),
+                ("When should you use a Pivot Table vs SUMIFS?", "Pivot Tables are interactive and auto-update when data changes — ideal for exploration. SUMIFS formulas are better when you need a fixed layout in a report or when building a dashboard that feeds other calculations."),
+                ("What are the components of a pivot operation?", "Three components: (1) Index — what becomes the rows (e.g., Region), (2) Columns — what becomes the column headers (e.g., Quarter), (3) Values — what gets aggregated in each cell (e.g., SUM of Sales)."),
+                ("How does pd.pivot_table() work in Python?", "pd.pivot_table(df, values='Sales', index='Region', columns='Quarter', aggfunc='sum') produces the same result as an Excel Pivot Table — rows are regions, columns are quarters, cells are summed sales."),
+                ("What happens with missing combinations in a pivot?", "If a region had no sales in a quarter, the cell shows NaN (or 0 with fill_value=0). This is important — missing data may indicate a real gap or a data collection issue."),
+            ],
+            formulas=[
+                "=SUMIFS(values, row_criteria_range, row_value, col_criteria_range, col_value)",
+                "Python: pd.pivot_table(df, values='Sales', index='Region', columns='Quarter', aggfunc='sum')",
+                "Python: df.pivot(index='Region', columns='Quarter', values='Sales') — no aggregation, requires unique combinations",
+            ],
+            approach="Use pivoting when you need cross-tabulation: comparing one dimension (rows) against another (columns). Start with long-format data, identify the row key, column key, and value to aggregate, then reshape. Always add row/column totals for validation.",
+            advantages=["Makes comparison across two dimensions intuitive (region x quarter)", "Compresses many rows into a compact, readable grid", "Enables heatmap visualization for spotting patterns at a glance", "Foundation for executive dashboards and summary reports"],
+            limitations=["Wide tables become unwieldy with many categories (50 products x 12 months = 600 cells)", "Assumes a meaningful two-dimensional relationship exists", "Unpivoting (melting) back to long format is needed for certain analyses", "Duplicate index-column combinations require an aggregate function to resolve"],
+        )
 
 
 # =============================================================================
@@ -528,7 +665,7 @@ elif page == "5. Min-Max Scaling":
     s_min, s_max = min(sales), max(sales); i_min, i_max = min(items), max(items)
     sales_norm = [(v-s_min)/(s_max-s_min) for v in sales]; items_norm = [(v-i_min)/(i_max-i_min) for v in items]
 
-    tab1, tab2, tab3 = st.tabs(["Raw vs Scaled", "Live Explorer", "Formula"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Raw vs Scaled", "Live Explorer", "Formula", "Q&A / Learn"])
     with tab1:
         fig = make_subplots(rows=1, cols=2, subplot_titles=("Raw (different scales)", "Min-Max Scaled (0-1)"))
         fig.add_trace(go.Bar(x=days, y=sales, name="Sales ($)", marker_color=DARK_BLUE), row=1, col=1)
@@ -551,6 +688,25 @@ elif page == "5. Min-Max Scaling":
         formula_block("Excel: =(B2 - MIN($B$2:$B$8)) / (MAX($B$2:$B$8) - MIN($B$2:$B$8))")
         formula_block("Python: from sklearn.preprocessing import MinMaxScaler")
         example_box("Worked Example", f"Monday = $1,200 &nbsp; Min=${s_min:,} &nbsp; Max=${s_max:,}<br>Scaled = (1200&minus;{s_min})/({s_max}&minus;{s_min}) = <strong>{(1200-s_min)/(s_max-s_min):.3f}</strong>")
+    with tab4:
+        render_qa_tab(
+            qas=[
+                ("Why do we need to scale features to [0, 1]?", "Many ML algorithms (neural networks, KNN, SVM) use distance metrics. If one feature ranges 0–100 and another 0–1,000,000, the larger feature dominates. Min-max scaling puts all features on equal footing."),
+                ("What happens to outliers under min-max scaling?", "Outliers compress the rest of the data into a narrow band. If max=1,000,000 and most values are under 100, all non-outlier values will cluster near 0. This is why min-max is sensitive to outliers."),
+                ("Can you scale to a range other than [0, 1]?", "Yes. The general formula is: x_scaled = (x - min) / (max - min) * (new_max - new_min) + new_min. sklearn's MinMaxScaler accepts a feature_range parameter, e.g., feature_range=(0, 10)."),
+                ("How do you apply min-max scaling to new/test data?", "Use the min and max from the training set, not the test set. In sklearn: fit on train, then transform both train and test. This prevents data leakage — the model should not 'see' test data statistics."),
+                ("Is min-max scaling reversible?", "Yes. x_original = x_scaled * (max - min) + min. This is called inverse transformation and is useful when you need to interpret predictions back in the original scale."),
+            ],
+            formulas=[
+                "x_scaled = (x − x_min) / (x_max − x_min) — basic 0-to-1 scaling",
+                "x_scaled = (x − min) / (max − min) × (b − a) + a — scale to [a, b]",
+                "Excel: =(B2 - MIN($B:$B)) / (MAX($B:$B) - MIN($B:$B))",
+                "Python: MinMaxScaler(feature_range=(0,1)).fit_transform(X)",
+            ],
+            approach="Apply min-max scaling when all features need to be on the same [0,1] scale, especially for distance-based algorithms and neural networks. Check for outliers first — if present, consider robust scaling instead. Always fit on training data only.",
+            advantages=["Preserves the original distribution shape exactly", "Bounded output [0,1] is interpretable and compatible with neural network activations", "Simple, fast, and easy to explain to stakeholders", "Reversible — can recover original values via inverse transform"],
+            limitations=["Highly sensitive to outliers — a single extreme value compresses all others", "New data outside the training range maps to values outside [0,1]", "Does not center the data around zero (unlike z-score)", "Not suitable when the distribution has extreme skew — log transform first"],
+        )
 
 
 # =============================================================================
@@ -568,7 +724,7 @@ elif page == "6. Z-Score Scaling":
     mean_v, std_v = data.mean(), data.std()
     z_scores = (data - mean_v) / std_v
 
-    tab1, tab2 = st.tabs(["Visualization", "Formula & Comparison"])
+    tab1, tab2, tab3 = st.tabs(["Visualization", "Formula & Comparison", "Q&A / Learn"])
     with tab1:
         fig = make_subplots(rows=1, cols=2, subplot_titles=("Original Data (note outlier)", "Z-Scores (standardized)"))
         fig.add_trace(go.Bar(x=labels, y=data, marker_color=[CORAL if v > 100 else DARK_BLUE for v in data], text=data, textposition="outside"), row=1, col=1)
@@ -595,6 +751,25 @@ elif page == "6. Z-Score Scaling":
             "Z-Score": ["Unbounded", "Less affected", "Yes", "Linear models, outlier detection"],
         })
         st.dataframe(comp, use_container_width=True, hide_index=True)
+    with tab3:
+        render_qa_tab(
+            qas=[
+                ("What does a z-score of +2.5 tell you?", "The value is 2.5 standard deviations above the mean. Under a normal distribution, only ~0.6% of values exceed +2.5σ, making it a potential outlier worth investigating."),
+                ("Why does z-score standardization center data at zero?", "Subtracting the mean shifts the distribution so its center is at 0. Dividing by standard deviation scales it so one unit = one σ. This makes different features directly comparable regardless of their original scales."),
+                ("When should you choose z-score over min-max?", "Choose z-score when: (1) data has outliers (z-score is less distorted), (2) you need unbounded output (regression, PCA), (3) the algorithm assumes normally distributed features (linear regression, LDA)."),
+                ("How does z-score help in outlier detection?", "Values with |z| > 2 or |z| > 3 are flagged as outliers. This provides a statistical threshold rather than an arbitrary cutoff. The 68-95-99.7 rule gives clear probabilistic interpretation."),
+                ("Is z-score affected by sample size?", "Yes. With small samples, mean and std are less stable, making z-scores less reliable. With very small datasets (<30 observations), consider using robust scaling with median/IQR instead."),
+            ],
+            formulas=[
+                "z = (x − μ) / σ — standard z-score formula",
+                "Excel: =(B2 - AVERAGE($B$2:$B$N)) / STDEV($B$2:$B$N)",
+                "Python: StandardScaler().fit_transform(X)",
+                "68-95-99.7 rule: 68% within ±1σ, 95% within ±2σ, 99.7% within ±3σ",
+            ],
+            approach="Use z-score standardization when features have different units or scales and you need mean-centered, unit-variance data. Fit the scaler on training data only to avoid data leakage. Check that the result has mean ≈ 0 and std ≈ 1 as validation.",
+            advantages=["Less sensitive to outliers than min-max (outliers don't compress all other values)", "Output is unbounded — no artificial clipping of extreme values", "Directly interpretable: z=2 means '2 standard deviations above average'", "Preserves the shape of the original distribution"],
+            limitations=["Assumes the mean and std are meaningful — fails for highly skewed data", "No fixed output range — can't guarantee values fall in [0,1]", "Sensitive to the sample used for computing mean and std", "Not suitable for sparse data where most values are zero"],
+        )
 
 
 # =============================================================================
@@ -613,7 +788,7 @@ elif page == "7. Robust Scaling":
     z_scores = (data - data.mean()) / data.std()
     mm = (data - data.min()) / (data.max() - data.min())
 
-    tab1, tab2 = st.tabs(["Comparison of 3 Scalers", "Formula"])
+    tab1, tab2, tab3 = st.tabs(["Comparison of 3 Scalers", "Formula", "Q&A / Learn"])
     with tab1:
         fig = make_subplots(rows=1, cols=3, subplot_titles=("Min-Max", "Z-Score", "Robust"))
         fig.add_trace(go.Bar(x=labels, y=mm, marker_color=[CORAL if v>0.9 else TEAL for v in mm]), row=1, col=1)
@@ -633,6 +808,24 @@ elif page == "7. Robust Scaling":
         formula_block("x_robust = (x &minus; median) / IQR &nbsp;&nbsp;where IQR = Q3 &minus; Q1")
         formula_block("Excel: =(B2 - MEDIAN($B$2:$B$11)) / (PERCENTILE($B$2:$B$11, 0.75) - PERCENTILE($B$2:$B$11, 0.25))")
         formula_block("Python: from sklearn.preprocessing import RobustScaler")
+    with tab3:
+        render_qa_tab(
+            qas=[
+                ("Why use median and IQR instead of mean and std?", "Median and IQR are resistant to outliers. The mean is pulled toward extreme values, and std inflates when outliers are present. Robust scaling ensures the majority of data is well-scaled regardless of a few extreme points."),
+                ("What is IQR and how is it calculated?", "IQR (Interquartile Range) = Q3 − Q1, where Q1 is the 25th percentile and Q3 is the 75th percentile. It captures the spread of the middle 50% of data, ignoring the tails where outliers live."),
+                ("How does robust scaling compare to z-score on data with outliers?", "With outliers, z-score compresses the central data because the inflated std reduces all z-scores. Robust scaling keeps the central data well-spread around 0, and only the outlier gets a large scaled value."),
+                ("When is robust scaling NOT the best choice?", "When data is clean (no outliers), z-score or min-max may be preferable as they use all information. Robust scaling ignores the tails by design, which wastes information in well-behaved datasets."),
+                ("Can you use robust scaling with other quantile ranges?", "Yes. sklearn's RobustScaler accepts quantile_range parameter (default 25.0–75.0). Using a wider range like 10–90 includes more data; a narrower range like 30–70 is even more outlier-resistant."),
+            ],
+            formulas=[
+                "x_robust = (x − median) / IQR, where IQR = Q3 − Q1",
+                "Excel: =(B2 - MEDIAN($B:$B)) / (PERCENTILE($B:$B, 0.75) - PERCENTILE($B:$B, 0.25))",
+                "Python: RobustScaler(quantile_range=(25.0, 75.0)).fit_transform(X)",
+            ],
+            approach="Choose robust scaling when your data contains significant outliers that would distort mean-based methods. It is the default recommendation for financial data (income, transaction amounts) and sensor data where extreme readings are common but shouldn't dominate the scaling.",
+            advantages=["Immune to outliers — median and IQR are not affected by extreme values", "Central data (middle 50%) is well-scaled and interpretable", "Works well for financial data where heavy tails are expected", "Compatible with all sklearn pipeline workflows"],
+            limitations=["Does not produce bounded output — no guaranteed [0,1] range", "Ignores information in the tails of the distribution", "Less intuitive than z-score (no direct probabilistic interpretation like ±2σ)", "Not suitable when the data is already clean and normally distributed"],
+        )
 
 
 # =============================================================================
@@ -648,7 +841,7 @@ elif page == "8. Log Transform":
     skewed = np.random.exponential(scale=5000, size=500)
     log_transformed = np.log1p(skewed)
 
-    tab1, tab2, tab3 = st.tabs(["Before & After", "Live Explorer", "Formula & Use Cases"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Before & After", "Live Explorer", "Formula & Use Cases", "Q&A / Learn"])
     with tab1:
         fig = make_subplots(rows=1, cols=2, subplot_titles=("Original (Right-Skewed)", "After log(1+x)"))
         fig.add_trace(go.Histogram(x=skewed, nbinsx=40, marker_color=CORAL, opacity=0.8, name="Original"), row=1, col=1)
@@ -682,6 +875,25 @@ elif page == "8. Log Transform":
                      "&#8226; <strong>Stock returns:</strong> log returns are additive across periods<br>"
                      "&#8226; <strong>Population:</strong> varies from 1K to 1B &rarr; log makes comparisons possible<br>"
                      "&#8226; <strong>Regression:</strong> log-linear models capture diminishing returns")
+    with tab4:
+        render_qa_tab(
+            qas=[
+                ("Why does log transformation reduce right skew?", "Log compresses large values more than small values. A value of 1,000 becomes ~6.9 (ln), while 10 becomes ~2.3. This pulls in the long right tail, making the distribution more symmetric and closer to normal."),
+                ("What is the difference between log(x) and log1p(x)?", "log(x) is undefined for x=0 and negative for 0<x<1. log1p(x) = log(1+x) handles zeros safely (log1p(0) = 0) and is preferred when data contains zeros, which is common in count data."),
+                ("When should you NOT use a log transform?", "Avoid log transforms when: (1) data is already normally distributed, (2) data contains negative values (log is undefined), (3) the relationship is truly linear (log distorts it), (4) interpretability in original units is critical."),
+                ("How do you interpret coefficients in a log-linear regression?", "In ln(Y) = a + bX, a 1-unit increase in X leads to approximately b×100% change in Y. For example, b=0.05 means a 1-unit increase in X increases Y by about 5%. This captures diminishing returns naturally."),
+                ("What base of logarithm should you use?", "For data transformation, natural log (ln) is standard. For interpretability with orders of magnitude, log10 is better (each unit = 10× increase). log2 is used in information theory. The choice doesn't affect the shape — only the scale."),
+            ],
+            formulas=[
+                "ln(x) — natural log, base e ≈ 2.718",
+                "log1p(x) = ln(1 + x) — safe for zeros",
+                "log10(x) — base-10 log, each unit = one order of magnitude",
+                "Inverse: exp(y) recovers original value from ln(x)",
+            ],
+            approach="Apply log transformation when data is right-skewed (skewness > 1) or spans multiple orders of magnitude. Check that all values are positive (or use log1p for zeros). After transforming, verify skewness reduction and visual normality with a histogram or Q-Q plot.",
+            advantages=["Effectively reduces right skewness toward normality", "Handles data spanning orders of magnitude (income, population)", "Log returns are additive — essential for financial time series", "Stabilizes variance (heteroscedasticity) in regression models"],
+            limitations=["Cannot handle negative values (log is undefined for x ≤ 0)", "Not effective for left-skewed or bimodal distributions", "Interpretation requires back-transformation (exponentiation) for stakeholders", "Over-compresses data if the original distribution is only mildly skewed"],
+        )
 
 
 # =============================================================================
@@ -697,7 +909,7 @@ elif page == "9. Box-Cox Transform":
     np.random.seed(42)
     skewed = np.random.exponential(scale=50, size=500) + 1
 
-    tab1, tab2 = st.tabs(["Interactive Lambda Explorer", "Formula & Special Cases"])
+    tab1, tab2, tab3 = st.tabs(["Interactive Lambda Explorer", "Formula & Special Cases", "Q&A / Learn"])
     with tab1:
         lam = st.slider("Lambda (λ)", -2.0, 3.0, 0.0, 0.1, key="bc_lam")
         if lam == 0:
@@ -731,6 +943,25 @@ elif page == "9. Box-Cox Transform":
         st.dataframe(special, use_container_width=True, hide_index=True)
         formula_block("Python: from scipy.stats import boxcox; transformed, optimal_lambda = boxcox(data)")
         formula_block("Requirement: All values must be strictly positive (x > 0)")
+    with tab3:
+        render_qa_tab(
+            qas=[
+                ("How does Box-Cox differ from a simple log transform?", "Log is a special case of Box-Cox (when λ=0). Box-Cox finds the optimal λ automatically via maximum likelihood estimation, testing the entire family of power transforms to find the one that best achieves normality."),
+                ("What does the optimal lambda (λ) represent?", "Lambda determines the type of power transform: λ=1 means no change, λ=0.5 means square root, λ=0 means log, λ=-1 means reciprocal. The optimal λ is the value that makes the transformed data closest to a normal distribution."),
+                ("Why must all values be strictly positive for Box-Cox?", "The formula x^λ is undefined or complex for negative values when λ is fractional. For data with zeros or negatives, use Yeo-Johnson transformation instead, which extends Box-Cox to handle all real numbers."),
+                ("How do you choose between Box-Cox and log transform?", "If you know your data is right-skewed, log is simple and interpretable. If you're unsure about the optimal transform or need a data-driven choice, use Box-Cox — it will select log if that's optimal, or find a better alternative."),
+                ("What is the Yeo-Johnson transformation?", "An extension of Box-Cox that works with zero and negative values. It applies different formulas for positive and negative regions. In sklearn: PowerTransformer(method='yeo-johnson'). Use it when Box-Cox's positivity requirement is too restrictive."),
+            ],
+            formulas=[
+                "y = (x^λ − 1) / λ when λ ≠ 0",
+                "y = ln(x) when λ = 0",
+                "Special cases: λ=-1 → 1/x, λ=0.5 → √x, λ=1 → x (identity), λ=2 → x²",
+                "Python: from scipy.stats import boxcox; transformed, lam = boxcox(data)",
+            ],
+            approach="Use Box-Cox when you need the most normal-like transformation and don't want to guess which power transform to apply. Ensure all values are strictly positive (add a constant if needed). Compare the skewness before and after, and use Q-Q plots to verify normality improvement.",
+            advantages=["Automatically finds the optimal transformation via maximum likelihood", "Encompasses log, square root, reciprocal, and identity as special cases", "Statistically principled — objective function (normality) is well-defined", "scipy.stats.boxcox returns both transformed data and optimal lambda"],
+            limitations=["Requires all values to be strictly positive (x > 0)", "Lambda is data-dependent — different datasets yield different lambdas", "Difficult to interpret transformed values when λ is unusual (e.g., λ=0.37)", "Inverse transform is needed to communicate results in original units"],
+        )
 
 
 # =============================================================================
@@ -751,7 +982,7 @@ elif page == "10. Categorize / Binning":
         "Grade": ["Fail","Pass","Distinction","Pass","Distinction","Fail","Distinction","Pass"],
     })
 
-    tab1, tab2, tab3 = st.tabs(["Data & Charts", "Custom Buckets Explorer", "Excel & Python"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Data & Charts", "Custom Buckets Explorer", "Excel & Python", "Q&A / Learn"])
     with tab1:
         st.dataframe(cat_data, use_container_width=True, hide_index=True)
         c1, c2 = st.columns(2)
@@ -781,6 +1012,25 @@ elif page == "10. Categorize / Binning":
         formula_block("Python: pd.cut(df['Age'], bins=[0,18,60,100], labels=['Youth','Adult','Senior'])")
         formula_block("Python (quantile): pd.qcut(df['Score'], q=3, labels=['Low','Mid','High'])")
         insight_box("Use <strong>pd.cut()</strong> for equal-width or custom bins and <strong>pd.qcut()</strong> for equal-frequency (quantile) bins.")
+    with tab4:
+        render_qa_tab(
+            qas=[
+                ("What is the difference between equal-width and equal-frequency binning?", "Equal-width bins have the same range (e.g., 0–33, 34–66, 67–100) but may have very different counts. Equal-frequency (quantile) bins have the same count in each bin but different widths. Use quantile bins when the distribution is skewed."),
+                ("When should you use custom bins vs automatic binning?", "Custom bins when domain knowledge defines meaningful boundaries (e.g., BMI categories, credit score ranges). Automatic bins when you're exploring data without predefined categories or when the domain doesn't prescribe specific thresholds."),
+                ("How does binning affect model performance?", "Binning reduces noise and can capture non-linear relationships (e.g., income bracket matters more than exact income). However, it loses granularity — two values near a bin boundary are treated identically despite being close to different bins."),
+                ("What is the boundary problem in binning?", "Values near bin edges (e.g., age 17 vs 18) get assigned to different categories despite being practically identical. Solutions include using overlapping bins, fuzzy boundaries, or keeping the continuous variable alongside the binned version."),
+                ("How many bins should you create?", "Too few bins over-simplify (everything is High/Low). Too many bins add noise. Common heuristics: Sturges' rule (k = 1 + log2(n)), Square root rule (k = √n), or domain expertise. For ML, 5-10 bins is typical."),
+            ],
+            formulas=[
+                'Excel: =IF(B2<18, "Youth", IF(B2<60, "Adult", "Senior")) — custom bins',
+                "Python: pd.cut(df['col'], bins=[0,18,60,100], labels=['Youth','Adult','Senior'])",
+                "Python: pd.qcut(df['col'], q=4, labels=['Q1','Q2','Q3','Q4']) — quantile bins",
+                "Sturges' rule: k = 1 + log₂(n) — suggested number of bins",
+            ],
+            approach="Decide on binning strategy based on the use case: custom bins for domain-specific categories, equal-width for uniform exploration, quantile bins for skewed data. Always visualize the distribution first to choose appropriate boundaries. Keep the original continuous variable for validation.",
+            advantages=["Simplifies complex continuous data into interpretable categories", "Handles non-linear relationships without explicit polynomial features", "Reduces the impact of outliers (extreme values land in the top/bottom bin)", "Enables categorical analysis (cross-tabulation, chi-square tests) on continuous data"],
+            limitations=["Loses information — exact values within a bin are treated identically", "Boundary sensitivity — small changes near bin edges cause category jumps", "Number and width of bins are somewhat arbitrary without domain guidance", "Can introduce artificial patterns if bin boundaries align with data clusters"],
+        )
 
 
 # =============================================================================
@@ -791,7 +1041,7 @@ elif page == "11. Categorical Encode":
     <div class="subtitle">Ordinal (Ranked) vs Nominal (One-Hot)</div></div>""", unsafe_allow_html=True)
     defn_box("The Problem", "Charts, formulas, and ML models need <strong>numbers</strong>. How we convert text &rarr; numbers depends on whether categories have a <strong>natural order</strong>.")
 
-    tab1, tab2, tab3 = st.tabs(["Ordinal Encoding", "One-Hot Encoding", "Formulas"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Ordinal Encoding", "One-Hot Encoding", "Formulas", "Q&A / Learn"])
     with tab1:
         st.markdown("### Ordinal: Categories with a Natural Rank")
         example_box("When to Use", "Size (S&lt;M&lt;L&lt;XL), Satisfaction (Poor&lt;Fair&lt;Good&lt;Excellent), Education level")
@@ -816,6 +1066,25 @@ elif page == "11. Categorical Encode":
         formula_block('One-Hot: =IF($B2="Red", 1, 0) &mdash; one column per category')
         formula_block("Python: pd.get_dummies(df['Color'], prefix='is')")
         formula_block("Python: from sklearn.preprocessing import LabelEncoder, OneHotEncoder")
+    with tab4:
+        render_qa_tab(
+            qas=[
+                ("When should you use ordinal encoding vs one-hot encoding?", "Ordinal encoding when categories have a natural rank (Small < Medium < Large). One-hot encoding when categories are nominal with no inherent order (Red, Blue, Green). Using ordinal encoding on nominal data falsely implies a mathematical ordering."),
+                ("What is the dummy variable trap and how do you avoid it?", "With k categories, one-hot encoding creates k binary columns. In linear regression, these are perfectly multicollinear (they sum to 1). Drop one column (drop_first=True in pandas) to avoid the trap. The dropped category becomes the baseline."),
+                ("How does one-hot encoding handle high-cardinality features?", "A feature with 1,000 unique values creates 1,000 new columns, causing the curse of dimensionality. Solutions: frequency encoding, target encoding, hashing trick, or grouping rare categories into 'Other' before encoding."),
+                ("What is target encoding and when is it useful?", "Replace each category with the mean of the target variable for that category. Useful for high-cardinality features. Risk: data leakage if not done with cross-validation. Use category_encoders library for safe implementation."),
+                ("Can tree-based models handle categorical variables directly?", "Some implementations (LightGBM, CatBoost) handle categories natively. Others (sklearn's RandomForest) require encoding. Even when native support exists, encoding can sometimes improve performance by providing a better starting representation."),
+            ],
+            formulas=[
+                '=MATCH(B2, {"Poor","Fair","Good","Excellent"}, 0) — ordinal encoding in Excel',
+                '=IF($B2="Red", 1, 0) — one-hot encoding, one column per category',
+                "Python: pd.get_dummies(df['Color'], drop_first=True) — avoids dummy trap",
+                "Python: LabelEncoder().fit_transform(df['Category']) — ordinal encoding",
+            ],
+            approach="First determine if categories are ordinal (ranked) or nominal (unordered). For ordinal, map to integers preserving order. For nominal, use one-hot encoding. For high-cardinality features (>20 categories), consider target encoding or frequency encoding. Always drop one dummy column in regression to avoid multicollinearity.",
+            advantages=["Converts text categories to numbers that algorithms can process", "One-hot encoding avoids false ordinal relationships between categories", "Ordinal encoding preserves meaningful rank information efficiently", "Essential preprocessing step for virtually all ML algorithms"],
+            limitations=["One-hot encoding explodes dimensionality for high-cardinality features", "Ordinal encoding on nominal data introduces false mathematical relationships", "Encoding is model-specific — what works for regression may not suit trees", "New/unseen categories at prediction time require a handling strategy (e.g., 'Unknown' category)"],
+        )
 
 
 # =============================================================================
@@ -827,7 +1096,7 @@ elif page == "12. Feature Engineering":
     defn_box("What is Feature Engineering?", "The art of creating <strong>new columns</strong> from existing data that better capture the underlying patterns. "
              "Often the single biggest lever for improving model performance. Goes beyond raw transformation into domain-informed variable creation.")
 
-    tab1, tab2, tab3 = st.tabs(["Common Techniques", "Interactive Example", "Python Patterns"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Common Techniques", "Interactive Example", "Python Patterns", "Q&A / Learn"])
     with tab1:
         techniques = pd.DataFrame({
             "Technique": ["Ratio / Proportion", "Interaction Terms", "Polynomial Features", "Date Decomposition",
@@ -881,6 +1150,25 @@ elif page == "12. Feature Engineering":
         formula_block("# Rolling statistics\ndf['ma_7'] = df['sales'].rolling(7).mean()\ndf['std_7'] = df['sales'].rolling(7).std()")
         formula_block("# Polynomial features\nfrom sklearn.preprocessing import PolynomialFeatures\npoly = PolynomialFeatures(degree=2)\nX_poly = poly.fit_transform(X)")
         insight_box("Feature engineering is often more impactful than choosing a fancier model. A good feature derived from domain knowledge can outperform complex algorithms working on raw data.")
+    with tab4:
+        render_qa_tab(
+            qas=[
+                ("Why is feature engineering considered the most impactful step in ML?", "Raw features rarely capture the true signal. Engineered features encode domain knowledge (e.g., BMI from height and weight) that algorithms cannot discover on their own. Competitions like Kaggle are often won by creative feature engineering, not model selection."),
+                ("What are ratio features and when should you create them?", "Ratios normalize one variable by another: revenue per employee, cost per unit, price-to-earnings. They capture efficiency and intensity, removing the effect of scale. Use them whenever comparing entities of different sizes (companies, regions, time periods)."),
+                ("How do lag features help in time series forecasting?", "Lag features (e.g., sales yesterday, sales 7 days ago) let the model learn temporal patterns: autocorrelation, weekly cycles, trends. Without lags, the model has no concept of time — each row is independent and the sequential nature is lost."),
+                ("What is the risk of creating too many features?", "The curse of dimensionality: with too many features relative to observations, models overfit, training slows, and noise overwhelms signal. Use feature selection (mutual information, L1 regularization, recursive elimination) to prune irrelevant features."),
+                ("How do you validate that an engineered feature is useful?", "Check correlation with the target variable, compute mutual information score, or compare model performance with and without the feature. A feature that doesn't improve cross-validated performance is noise and should be dropped."),
+            ],
+            formulas=[
+                "Ratio: df['price_per_unit'] = df['revenue'] / df['quantity']",
+                "Lag: df['sales_lag1'] = df['sales'].shift(1)",
+                "Rolling: df['ma_7'] = df['sales'].rolling(7).mean()",
+                "Polynomial: PolynomialFeatures(degree=2).fit_transform(X)",
+            ],
+            approach="Start with domain knowledge: what ratios, differences, or interactions would a subject matter expert find meaningful? Then add systematic features: date decomposition, lag/rolling stats for time series, interaction terms. Always validate each feature's predictive power and drop those that don't improve the model.",
+            advantages=["Can dramatically improve model accuracy without changing the algorithm", "Encodes domain expertise that algorithms cannot learn from raw data alone", "Ratio and normalized features enable fair comparison across different scales", "Date decomposition and lag features unlock temporal patterns in time series"],
+            limitations=["Risk of overfitting if too many features are created from limited data", "Requires deep domain knowledge to create truly meaningful features", "Engineered features may be collinear with existing features, adding redundancy", "Feature engineering is labor-intensive and doesn't transfer easily between domains"],
+        )
 
 
 # =============================================================================
@@ -911,7 +1199,7 @@ elif page == "13. FreshMart Caselet":
         "Size Bucket": ["Medium","Small","Small","Medium","Small","Small","Small","Small","Large","Small","Small","Large"],
     })
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Raw vs Clean", "5 Business Questions", "Transformations Applied", "Interactive Explorer"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Raw vs Clean", "5 Business Questions", "Transformations Applied", "Interactive Explorer", "Q&A / Learn"])
     with tab1:
         st.markdown("#### Raw Data"); st.dataframe(raw_caselet, use_container_width=True, hide_index=True)
         st.markdown("#### Cleaned & Transformed"); st.dataframe(clean_caselet.drop(columns=["Date"]).assign(Date=clean_caselet["Date"].dt.strftime("%Y-%m-%d")), use_container_width=True, hide_index=True)
@@ -963,6 +1251,25 @@ elif page == "13. FreshMart Caselet":
             grouped = clean_caselet.groupby(col_choice)["Qty"].mean().round(1).reset_index(); grouped.columns = [col_choice, "Value"]; fmt="{:,.1f}"
         fig_exp = go.Figure(go.Bar(x=grouped[col_choice], y=grouped["Value"], marker_color=[MP_COLORS[i%len(MP_COLORS)] for i in range(len(grouped))], text=[fmt.format(v) for v in grouped["Value"]], textposition="outside"))
         mp_layout(fig_exp, f"{metric_choice} by {col_choice}", 400); st.plotly_chart(fig_exp, use_container_width=True)
+    with tab5:
+        render_qa_tab(
+            qas=[
+                ("What is the typical order of data transformations in a real project?", "1) Clean (fix typos, handle missing values), 2) Standardize (units, formats), 3) Aggregate (group summaries), 4) Normalize/Scale (for ML), 5) Encode (categorical to numeric), 6) Engineer features. Cleaning always comes first — garbage in, garbage out."),
+                ("How do you handle missing region values in the FreshMart dataset?", "The blank region in row 5 is replaced with 'Unknown' rather than deleted. Deleting rows loses data; imputing with 'Unknown' preserves the transaction for sales totals while clearly flagging the data quality issue for investigation."),
+                ("Why convert INR to USD instead of keeping both currencies?", "You cannot SUM or compare amounts in different currencies. Converting to a single base currency (USD at 1 USD = 83 INR) enables valid aggregation, ranking, and percentage calculations across all orders."),
+                ("How do you validate that your transformations are correct?", "Cross-check totals: sum of cleaned USD amounts should equal sum of original amounts after conversion. Check row counts: no rows should be lost unless intentionally filtered. Verify categories: all regions should map to expected clean values."),
+                ("What real-world complications does this caselet illustrate?", "Inconsistent casing (' north ' vs 'NORTH'), leading/trailing spaces, mixed currencies, text dates, missing values — these are the top 5 data quality issues found in production data. The caselet teaches that transformation is 80% cleaning, 20% analysis."),
+            ],
+            formulas=[
+                '=IF(B2="", "Unknown", PROPER(TRIM(B2))) — clean region names',
+                '=IF(F2="INR", E2/83, E2) — currency standardization',
+                "=SUMIF(B:B, region, E:E) — aggregate by region",
+                '=IF(E2>100, "Large", IF(E2>=50, "Medium", "Small")) — order size bins',
+            ],
+            approach="Follow the clean-first principle: fix data quality issues before any analysis. Standardize units and formats next. Only then aggregate and visualize. Document every transformation step so results are reproducible and auditable. Always validate with cross-checks.",
+            advantages=["End-to-end workflow demonstrates how transformations chain together", "Real-world messiness (mixed case, currencies, missing data) mirrors production scenarios", "Business questions drive the transformations — purpose-driven data prep", "Cross-validation of totals ensures transformation accuracy"],
+            limitations=["Fixed exchange rate (1 USD = 83 INR) doesn't reflect real-time fluctuations", "Small dataset (12 rows) doesn't reveal scalability challenges", "'Unknown' for missing regions may skew regional analysis", "Date parsing assumes a single format — real data often has multiple date formats"],
+        )
 
 
 # =============================================================================
