@@ -162,6 +162,30 @@ st.markdown(f"""
     .social-links a.github {{ background: #333; color: white !important; }}
     .social-links a.web {{ background: {DARK_BLUE}; color: white !important; }}
     .social-links a:hover {{ opacity: 0.85; transform: translateY(-1px); }}
+
+    /* Code blocks for case study */
+    .code-block {{
+        background: #1e1e2e; color: #cdd6f4; border-radius: 8px; padding: 1rem 1.2rem;
+        font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.5;
+        overflow-x: auto; margin: 0.5rem 0; border-left: 4px solid {GOLD};
+    }}
+    .code-block .kw {{ color: #cba6f7; }} /* keywords */
+    .code-block .fn {{ color: #89b4fa; }} /* functions */
+    .code-block .st {{ color: #a6e3a1; }} /* strings */
+    .code-block .cm {{ color: #6c7086; font-style: italic; }} /* comments */
+    .code-block .nb {{ color: #f9e2af; }} /* numbers/builtins */
+    .step-header {{
+        background: linear-gradient(135deg, {DARK_BLUE}, {MID_BLUE});
+        color: white; padding: 0.8rem 1.2rem; border-radius: 8px; margin: 1.5rem 0 0.5rem 0;
+        font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 1.05rem;
+        display: flex; align-items: center; gap: 10px;
+        box-shadow: 0 3px 10px rgba(0,51,102,0.2);
+    }}
+    .step-num {{
+        background: {GOLD}; color: {DARK_BLUE}; width: 32px; height: 32px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 0.9rem; flex-shrink: 0;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -225,6 +249,7 @@ PAGES = [
     "11. Categorical Encode",
     "12. Feature Engineering",
     "13. FreshMart Caselet",
+    "14. Python Case Study",
 ]
 
 with st.sidebar:
@@ -938,6 +963,222 @@ elif page == "13. FreshMart Caselet":
             grouped = clean_caselet.groupby(col_choice)["Qty"].mean().round(1).reset_index(); grouped.columns = [col_choice, "Value"]; fmt="{:,.1f}"
         fig_exp = go.Figure(go.Bar(x=grouped[col_choice], y=grouped["Value"], marker_color=[MP_COLORS[i%len(MP_COLORS)] for i in range(len(grouped))], text=[fmt.format(v) for v in grouped["Value"]], textposition="outside"))
         mp_layout(fig_exp, f"{metric_choice} by {col_choice}", 400); st.plotly_chart(fig_exp, use_container_width=True)
+
+
+# =============================================================================
+# PAGE 14: PYTHON CASE STUDY
+# =============================================================================
+elif page == "14. Python Case Study":
+    st.markdown("""<div class="mp-brand-header"><h1>Python Case Study</h1>
+    <div class="subtitle">Data Transformation Techniques &mdash; End-to-End with sklearn &amp; scipy</div></div>""", unsafe_allow_html=True)
+
+    defn_box("Case Study Overview",
+             "A retail customer dataset with <strong>500 records</strong> containing Income (skewed), Age (normal), Spending Score, and Gender. "
+             "We apply every major transformation technique step by step, with <strong>before-and-after visualizations</strong> and the Python code that produces each result.")
+
+    def step_header(num, title):
+        st.markdown(f'<div class="step-header"><div class="step-num">{num}</div>{title}</div>', unsafe_allow_html=True)
+
+    def show_code(code):
+        st.code(code, language="python")
+
+    # --- Generate the dataset (same seed as notebook) ---
+    from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, LabelEncoder
+    from scipy.stats import boxcox, skew as sp_skew
+
+    np.random.seed(42)
+    n = 500
+    cs_data = pd.DataFrame({
+        'Income': np.random.exponential(scale=50000, size=n),
+        'Age': np.abs(np.random.normal(40, 10, n)),
+        'Spending_Score': np.random.randint(1, 100, n),
+        'Gender': np.random.choice(['Male', 'Female'], n),
+    })
+
+    # ---- STEP 1 & 2: Libraries & Dataset ----
+    step_header("1", "Import Libraries")
+    show_code("""import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler, LabelEncoder
+from scipy.stats import boxcox, skew""")
+
+    step_header("2", "Create Sample Dataset")
+    show_code("""np.random.seed(42)
+n = 500
+data = pd.DataFrame({
+    'Income':         np.random.exponential(scale=50000, size=n),
+    'Age':            np.random.normal(40, 10, n),
+    'Spending_Score': np.random.randint(1, 100, n),
+    'Gender':         np.random.choice(['Male','Female'], n)
+})
+data['Age'] = abs(data['Age'])""")
+
+    st.markdown("#### Original Data (first 10 rows)")
+    st.dataframe(cs_data.head(10), use_container_width=True, hide_index=True)
+
+    cols_m = st.columns(4)
+    with cols_m[0]: st.markdown(metric_card("Rows", "500"), unsafe_allow_html=True)
+    with cols_m[1]: st.markdown(metric_card("Avg Income", f"${cs_data['Income'].mean():,.0f}"), unsafe_allow_html=True)
+    with cols_m[2]: st.markdown(metric_card("Avg Age", f"{cs_data['Age'].mean():.1f}"), unsafe_allow_html=True)
+    with cols_m[3]: st.markdown(metric_card("Male / Female", f"{(cs_data['Gender']=='Male').sum()} / {(cs_data['Gender']=='Female').sum()}"), unsafe_allow_html=True)
+
+    # ---- STEP 3 & 4: Skewness + Log Transform ----
+    step_header("3", "Understanding Skewness")
+    orig_skew = round(sp_skew(cs_data['Income']), 2)
+    show_code(f"skew(data['Income'])  # Result: {orig_skew}")
+
+    cs_data['Log_Income'] = np.log1p(cs_data['Income'])
+    log_skew = round(sp_skew(cs_data['Log_Income']), 2)
+
+    step_header("4", "Log Transformation")
+    show_code("""data['Log_Income'] = np.log1p(data['Income'])
+# Skewness drops from {orig} to {after}""".format(orig=orig_skew, after=log_skew))
+
+    fig_log = make_subplots(rows=1, cols=2, subplot_titles=(f"BEFORE: Income (skew={orig_skew})", f"AFTER: Log Income (skew={log_skew})"))
+    fig_log.add_trace(go.Histogram(x=cs_data['Income'], nbinsx=40, marker_color=CORAL, opacity=0.85, name="Original"), row=1, col=1)
+    fig_log.add_trace(go.Histogram(x=cs_data['Log_Income'], nbinsx=40, marker_color=ACCENT_GREEN, opacity=0.85, name="Log"), row=1, col=2)
+    mp_layout(fig_log, "Step 4: Log Transformation Effect", 380); st.plotly_chart(fig_log, use_container_width=True)
+
+    # ---- STEP 5: Min-Max ----
+    step_header("5", "Min-Max Scaling")
+    show_code("""minmax = MinMaxScaler()
+data['Income_MinMax'] = minmax.fit_transform(data[['Income']])
+# Range: 0.00 to 1.00""")
+
+    cs_data['Income_MinMax'] = MinMaxScaler().fit_transform(cs_data[['Income']])
+    fig_mm = make_subplots(rows=1, cols=2, subplot_titles=("BEFORE: Original Income", "AFTER: MinMax Scaled [0,1]"))
+    fig_mm.add_trace(go.Histogram(x=cs_data['Income'], nbinsx=40, marker_color=CORAL, opacity=0.85), row=1, col=1)
+    fig_mm.add_trace(go.Histogram(x=cs_data['Income_MinMax'], nbinsx=40, marker_color=TEAL, opacity=0.85), row=1, col=2)
+    mp_layout(fig_mm, "Step 5: Min-Max Scaling Effect", 380); st.plotly_chart(fig_mm, use_container_width=True)
+
+    c1, c2 = st.columns(2)
+    with c1: st.markdown(metric_card("Min after scaling", f"{cs_data['Income_MinMax'].min():.2f}"), unsafe_allow_html=True)
+    with c2: st.markdown(metric_card("Max after scaling", f"{cs_data['Income_MinMax'].max():.2f}"), unsafe_allow_html=True)
+
+    # ---- STEP 6: Standardization ----
+    step_header("6", "Standardization (Z-Score)")
+    cs_data['Income_Std'] = StandardScaler().fit_transform(cs_data[['Income']])
+    show_code("""standard = StandardScaler()
+data['Income_Standardized'] = standard.fit_transform(data[['Income']])
+# Mean ≈ 0, Std ≈ 1""")
+
+    fig_std = make_subplots(rows=1, cols=2, subplot_titles=("BEFORE: Original Income", f"AFTER: Standardized (μ={cs_data['Income_Std'].mean():.4f}, σ={cs_data['Income_Std'].std():.4f})"))
+    fig_std.add_trace(go.Histogram(x=cs_data['Income'], nbinsx=40, marker_color=CORAL, opacity=0.85), row=1, col=1)
+    fig_std.add_trace(go.Histogram(x=cs_data['Income_Std'], nbinsx=40, marker_color=GOLD, opacity=0.85), row=1, col=2)
+    mp_layout(fig_std, "Step 6: Standardization Effect", 380); st.plotly_chart(fig_std, use_container_width=True)
+
+    c1, c2 = st.columns(2)
+    with c1: st.markdown(metric_card("Mean after", f"{cs_data['Income_Std'].mean():.4f}"), unsafe_allow_html=True)
+    with c2: st.markdown(metric_card("Std Dev after", f"{cs_data['Income_Std'].std():.4f}"), unsafe_allow_html=True)
+
+    # ---- STEP 7: Robust Scaling ----
+    step_header("7", "Robust Scaling")
+    cs_data['Income_Robust'] = RobustScaler().fit_transform(cs_data[['Income']])
+    show_code("""robust = RobustScaler()
+data['Income_Robust'] = robust.fit_transform(data[['Income']])""")
+
+    fig_rob = make_subplots(rows=1, cols=2, subplot_titles=("BEFORE: Original (box plot)", "AFTER: Robust Scaled (box plot)"))
+    fig_rob.add_trace(go.Box(y=cs_data['Income'], name="Original", marker_color=CORAL, boxmean=True), row=1, col=1)
+    fig_rob.add_trace(go.Box(y=cs_data['Income_Robust'], name="Robust", marker_color=DARK_BLUE, boxmean=True), row=1, col=2)
+    mp_layout(fig_rob, "Step 7: Robust Scaling Effect (Box Plots)", 400); st.plotly_chart(fig_rob, use_container_width=True)
+
+    insight_box("Box plots show outliers clearly. Robust Scaling uses <strong>median &amp; IQR</strong> so the central mass of data sits near zero while outliers are flagged without distorting the scale.")
+
+    # ---- STEP 8: Box-Cox ----
+    step_header("8", "Box-Cox Transformation")
+    cs_data['Income_BoxCox'], bc_lam = boxcox(cs_data['Income'] + 1)
+    bc_skew = round(sp_skew(cs_data['Income_BoxCox']), 2)
+    show_code(f"""data['Income_BoxCox'], lam = boxcox(data['Income'] + 1)
+# Lambda = {bc_lam:.4f}
+# Skewness AFTER: {bc_skew}""")
+
+    fig_bc = make_subplots(rows=1, cols=2, subplot_titles=("BEFORE: Original Income", f"AFTER: Box-Cox (λ={bc_lam:.3f}, skew={bc_skew})"))
+    fig_bc.add_trace(go.Histogram(x=cs_data['Income'], nbinsx=40, marker_color=CORAL, opacity=0.85), row=1, col=1)
+    fig_bc.add_trace(go.Histogram(x=cs_data['Income_BoxCox'], nbinsx=40, marker_color=PURPLE, opacity=0.85), row=1, col=2)
+    mp_layout(fig_bc, "Step 8: Box-Cox Transformation Effect", 380); st.plotly_chart(fig_bc, use_container_width=True)
+
+    c1, c2, c3 = st.columns(3)
+    with c1: st.markdown(metric_card("Lambda (λ)", f"{bc_lam:.4f}"), unsafe_allow_html=True)
+    with c2: st.markdown(metric_card("Skew Before", f"{orig_skew}"), unsafe_allow_html=True)
+    with c3: st.markdown(metric_card("Skew After", f"{bc_skew}"), unsafe_allow_html=True)
+
+    # ---- STEP 9: Label Encoding ----
+    step_header("9", "Encoding Categorical Variables")
+    cs_data['Gender_Encoded'] = LabelEncoder().fit_transform(cs_data['Gender'])
+    show_code("""encoder = LabelEncoder()
+data['Gender_Encoded'] = encoder.fit_transform(data['Gender'])
+# Female -> 0, Male -> 1""")
+
+    fig_enc = make_subplots(rows=1, cols=2, subplot_titles=("BEFORE: Categorical Gender", "AFTER: Encoded Gender"))
+    gb = cs_data['Gender'].value_counts()
+    ge = cs_data['Gender_Encoded'].value_counts().sort_index()
+    fig_enc.add_trace(go.Bar(x=gb.index, y=gb.values, marker_color=[CORAL, DARK_BLUE], name="Categorical"), row=1, col=1)
+    fig_enc.add_trace(go.Bar(x=["0 (Female)", "1 (Male)"], y=[ge.get(0,0), ge.get(1,0)], marker_color=[CORAL, DARK_BLUE], name="Encoded"), row=1, col=2)
+    mp_layout(fig_enc, "Step 9: Label Encoding Effect", 380); st.plotly_chart(fig_enc, use_container_width=True)
+
+    # ---- STEP 10: Binning ----
+    step_header("10", "Binning / Discretization")
+    cs_data['Age_Group'] = pd.cut(cs_data['Age'], bins=[0,25,40,60,100], labels=['Young','Adult','Middle Age','Senior'])
+    show_code("""data['Age_Group'] = pd.cut(
+    data['Age'],
+    bins=[0, 25, 40, 60, 100],
+    labels=['Young', 'Adult', 'Middle Age', 'Senior']
+)""")
+
+    fig_bin = make_subplots(rows=1, cols=2, subplot_titles=("BEFORE: Continuous Age", "AFTER: Binned Age Groups"))
+    fig_bin.add_trace(go.Histogram(x=cs_data['Age'], nbinsx=30, marker_color=CORAL, opacity=0.85), row=1, col=1)
+    ag = cs_data['Age_Group'].value_counts().reindex(['Young','Adult','Middle Age','Senior'])
+    fig_bin.add_trace(go.Bar(x=ag.index.astype(str), y=ag.values, marker_color=[GOLD, DARK_BLUE, TEAL, ACCENT_GREEN]), row=1, col=2)
+    mp_layout(fig_bin, "Step 10: Binning Effect", 380); st.plotly_chart(fig_bin, use_container_width=True)
+
+    # ---- STEP 11: Feature Engineering ----
+    step_header("11", "Feature Engineering")
+    cs_data['Spend_per_Age'] = cs_data['Spending_Score'] / cs_data['Age']
+    show_code("""data['Spend_per_Age'] = data['Spending_Score'] / data['Age']
+# Spending intensity relative to age""")
+
+    fig_fe = make_subplots(rows=1, cols=2, subplot_titles=("BEFORE: Spending Score vs Age", "AFTER: Spend per Age vs Age"))
+    fig_fe.add_trace(go.Scatter(x=cs_data['Age'], y=cs_data['Spending_Score'], mode='markers', marker=dict(color=CORAL, size=4, opacity=0.5), name="Spending Score"), row=1, col=1)
+    fig_fe.add_trace(go.Scatter(x=cs_data['Age'], y=cs_data['Spend_per_Age'], mode='markers', marker=dict(color=DARK_BLUE, size=4, opacity=0.5), name="Spend/Age"), row=1, col=2)
+    mp_layout(fig_fe, "Step 11: Feature Engineering Effect", 400); st.plotly_chart(fig_fe, use_container_width=True)
+
+    insight_box("The engineered feature <strong>Spend_per_Age</strong> reveals that younger customers have a disproportionately higher spending intensity, a pattern invisible in the raw Spending Score.")
+
+    # ---- STEP 12: Final Comparison ----
+    step_header("12", "Final Comparison of All Transformations")
+    show_code("""# Compare all transformations side by side on the Income column""")
+
+    fig_final = make_subplots(rows=2, cols=3, subplot_titles=("Original", "Log Transform", "Min-Max", "Standardized (Z-Score)", "Robust Scaled", "Box-Cox"))
+    hist_cols = [('Income', CORAL), ('Log_Income', ACCENT_GREEN), ('Income_MinMax', TEAL),
+                 ('Income_Std', GOLD), ('Income_Robust', DARK_BLUE), ('Income_BoxCox', PURPLE)]
+    positions = [(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
+    for (col, color), (r, c) in zip(hist_cols, positions):
+        fig_final.add_trace(go.Histogram(x=cs_data[col], nbinsx=35, marker_color=color, opacity=0.85, showlegend=False), row=r, col=c)
+    mp_layout(fig_final, "All 6 Transformations Compared on Income", 500); st.plotly_chart(fig_final, use_container_width=True)
+
+    # ---- STEP 13: Final Dataset ----
+    step_header("13", "Final Transformed Dataset")
+    show_code(f"data.shape  # Result: {cs_data.shape}")
+
+    st.markdown("#### Final Dataset (first 10 rows)")
+    display_cols = ['Income','Log_Income','Income_MinMax','Income_Std','Income_Robust','Income_BoxCox','Age','Age_Group','Spending_Score','Spend_per_Age','Gender','Gender_Encoded']
+    st.dataframe(cs_data[display_cols].head(10).round(4), use_container_width=True, hide_index=True)
+
+    c1, c2, c3 = st.columns(3)
+    with c1: st.markdown(metric_card("Total Columns", f"{len(display_cols)}"), unsafe_allow_html=True)
+    with c2: st.markdown(metric_card("Original Columns", "4"), unsafe_allow_html=True)
+    with c3: st.markdown(metric_card("Engineered Columns", f"{len(display_cols)-4}"), unsafe_allow_html=True)
+
+    example_box("Summary of Techniques Applied",
+                "&#8226; <strong>Log Transform:</strong> Skewness {orig} &rarr; {log}<br>"
+                "&#8226; <strong>Min-Max:</strong> Range compressed to [0, 1]<br>"
+                "&#8226; <strong>Z-Score:</strong> Mean &rarr; 0, Std &rarr; 1<br>"
+                "&#8226; <strong>Robust:</strong> Median-centered, IQR-scaled (outlier-safe)<br>"
+                "&#8226; <strong>Box-Cox:</strong> Optimal &lambda;={lam:.3f}, near-normal result<br>"
+                "&#8226; <strong>Label Encoding:</strong> Male/Female &rarr; 1/0<br>"
+                "&#8226; <strong>Binning:</strong> Age &rarr; Young/Adult/Middle Age/Senior<br>"
+                "&#8226; <strong>Feature Engineering:</strong> Spend_per_Age reveals spending intensity".format(
+                    orig=orig_skew, log=log_skew, lam=bc_lam))
 
 
 # =============================================================================
